@@ -17,8 +17,6 @@ stages:
   jobs:
   - job: Build
     displayName: Build
-    pool:
-      vmImage: ubuntu-latest
     steps:
     - task: Docker@2
       displayName: Build an image
@@ -27,6 +25,9 @@ stages:
         dockerfile: '$(Build.SourcesDirectory)/Dockerfile.hbs'
         tags: |
           $(tag)
+  - job: Push
+    displayName: Push
+    steps:
     - task: Docker@2
       displayName: push an image
       inputs:
@@ -34,16 +35,28 @@ stages:
         dockerfile: '$(Build.SourcesDirectory)/Dockerfile.hbs'
         tags: |
           $(tag)
+- stage: kubesetups
+  displayName: Kubedrop
+  jobs:
+    - job: kubernatesinstallandCopyartifacts
+      displayName: Push
+      steps:
+      - task: KubectlInstaller@0
+        inputs:
+          kubectlVersion: 'latest'
     
-    - task: KubectlInstaller@0
-      inputs:
-        kubectlVersion: 'latest'
+      - task: Kubernetes@1
+        inputs:
+          connectionType: 'Kubernetes Service Connection'
+          command: 'apply'
+          secretType: 'dockerRegistry'
+          containerRegistryType: 'Azure Container Registry'
+          azureContainerRegistry: 'ecomercestore.azurecr.io'
     
-    - task: Kubernetes@1
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        command: 'apply'
-        secretType: 'dockerRegistry'
-        containerRegistryType: 'Azure Container Registry'
-        azureContainerRegistry: 'ecomercestore.azurecr.io'
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'drop'
+          publishLocation: 'FilePath'
+          TargetPath: 'helm'
      
