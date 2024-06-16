@@ -18,45 +18,14 @@ stages:
   - job: Build
     displayName: Build
     steps:
-    - task: Docker@2
-      displayName: Build an image
+    - task: AzureKeyVault@2
       inputs:
-        command: build
-        dockerfile: '$(Build.SourcesDirectory)/Dockerfile.hbs'
-        tags: |
-          $(tag)
-  - job: Push
-    displayName: Push
-    steps:
-    - task: Docker@2
-      displayName: push an image
+        azureSubscription: 'Free Trial(4a776b9e-19da-42f1-8421-fa1dc15edc77)'
+        KeyVaultName: 'azdevpipeline'
+        SecretsFilter: '*'
+        RunAsPreJob: false
+    - task: CmdLine@2
       inputs:
-        command: push
-        dockerfile: '$(Build.SourcesDirectory)/Dockerfile.hbs'
-        tags: |
-          $(tag)
-- stage: kubesetups
-  displayName: Kubedrop
-  jobs:
-    - job: kubernatesinstallandCopyartifacts
-      displayName: Push
-      steps:
-      - task: KubectlInstaller@0
-        inputs:
-          kubectlVersion: 'latest'
-    
-      - task: Kubernetes@1
-        inputs:
-          connectionType: 'Kubernetes Service Connection'
-          command: 'apply'
-          secretType: 'dockerRegistry'
-          containerRegistryType: 'Azure Container Registry'
-          azureContainerRegistry: 'ecomercestore.azurecr.io'
-    
-      - task: PublishBuildArtifacts@1
-        inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-          ArtifactName: 'drop'
-          publishLocation: 'FilePath'
-          TargetPath: 'helm'
-     
+        script: |
+          echo $uatdatabasepass
+          echo $subscription
